@@ -51,6 +51,33 @@ class TagProcessor {
             LogicalExpression: (node) => this.logicalExpression(node),
             ConditionalExpression: (node) => this.conditionalExpression(node),
             JSXExpressionContainer: (node) => this.jsxExpressionContainer(node),
+            ArrayExpression: (node) => this.arrayExpression(node),
+            ArrayPattern: (node) => this.arrayPattern(node),
+            ArrowFunctionExpression: (node) => this.arrowFunctionExpression(node),
+            BinaryExpression: (node) => this.binaryExpression(node),
+            CallExpression: (node) => this.callExpression(node),
+            ExpressionStatement: (node) => this.expressionStatement(node),
+            FunctionDeclaration: (node) => this.functionDeclaration(node),
+            Identifier: (node) => this.identifier(node),
+            ImportDefaultSpecifier: (node) => this.importDefaultSpecifier(node),
+            ImportSpecifier: (node) => this.importSpecifier(node),
+            JSXAttribute: (node) => this.jsxAttribute(node),
+            JSXClosingElement: (node) => this.jsxClosingElement(node),
+            JSXClosingFragment: (node) => this.jsxClosingFragment(node),
+            JSXFragment: (node) => this.jsxFragment(node),
+            JSXIdentifier: (node) => this.jsxIdentifier(node),
+            JSXOpeningElement: (node) => this.jsxOpeningElement(node),
+            JSXOpeningFragment: (node) => this.jsxOpeningFragment(node),
+            JSXSpreadAttribute: (node) => this.jsxSpreadAttribute(node),
+            MemberExpression: (node) => this.memberExpression(node),
+            NullLiteral: (node) => this.nullLiteral(node),
+            NumericLiteral: (node) => this.numericLiteral(node),
+            ObjectExpression: (node) => this.objectExpression(node),
+            ObjectPattern: (node) => this.objectPattern(node),
+            ObjectProperty: (node) => this.objectProperty(node),
+            StringLiteral: (node) => this.stringLiteral(node),
+            VariableDeclaration: (node) => this.variableDeclaration(node),
+            VariableDeclarator: (node) => this.variableDeclarator(node),
         };
     }
     blockStatement(n) {
@@ -73,7 +100,9 @@ class TagProcessor {
             next: n.expression,
         };
     }
-    conditionalExpression(n) { }
+    conditionalExpression(n) {
+        return {};
+    }
     logicalExpression(n) {
         if (n.operator === "&&") {
             return {
@@ -162,7 +191,7 @@ class TagProcessor {
         }
         const res = name.split(/(?=[A-Z])/);
         if (res.length === 1) {
-            if (this.shadMultipleImportComponents.includes(name.toLowerCase())) {
+            if (this.shadMultipleImportComponents.includes(name)) {
                 return `${name}.Root`;
             }
             else {
@@ -172,6 +201,81 @@ class TagProcessor {
         else {
             return res.join(".");
         }
+    }
+    arrayExpression(node) {
+        return {
+            next: node.elements,
+        };
+    }
+    arrayPattern(node) {
+        return {
+            next: node.elements,
+        };
+    }
+    arrowFunctionExpression(node) {
+        return {
+            next: node.body,
+        };
+    }
+    binaryExpression(node) { }
+    callExpression(node) { }
+    expressionStatement(node) { }
+    functionDeclaration(node) { }
+    identifier(node) {
+        return node.name;
+    }
+    importDefaultSpecifier(node) {
+        return {
+            next: node.local,
+        };
+    }
+    importSpecifier(node) { }
+    jsxAttribute(node) { }
+    jsxClosingElement(node) { }
+    jsxClosingFragment(node) { }
+    jsxFragment(node) { }
+    jsxIdentifier(node) { }
+    jsxOpeningElement(node) { }
+    jsxOpeningFragment(node) { }
+    jsxSpreadAttribute(node) { }
+    memberExpression(node) { }
+    nullLiteral(node) {
+        return "null";
+    }
+    numericLiteral(node) {
+        return node.value.toString();
+    }
+    objectExpression(node) {
+        return {
+            next: node.properties,
+        };
+    }
+    objectPattern(node) {
+        return node.properties;
+    }
+    objectProperty(node) { }
+    stringLiteral(node) {
+        return node.value;
+    }
+    variableDeclaration(node) {
+        if (node.declarations.length > 1) {
+            return {
+                openingTag: "let ",
+                next: node.declarations,
+            };
+        }
+        else {
+            return {
+                openingTag: "const ",
+                next: node.declarations,
+            };
+        }
+    }
+    variableDeclarator(node) {
+        return {
+            openingTag: node.id.name + " = ",
+            next: node.init,
+        };
     }
 }
 class FileManager {
@@ -185,17 +289,19 @@ class FileManager {
 }
 const reactScript = FileManager.readFromFile(path.join(__dirname, "..", "input", "react.tsx"));
 let tagProcessor = new TagProcessor();
-let result = "";
+let script = "";
+let header = "";
+let body = "";
 function reactToSvelte(node) {
     const nodeResult = tagProcessor.process(node);
     if (!nodeResult || nodeResult === null)
         return;
     if (typeof nodeResult === "string") {
-        result += nodeResult + "\n";
+        // result += nodeResult + "\n";
     }
     else if (nodeResult && typeof nodeResult === "object") {
         if ("openingTag" in nodeResult) {
-            result += nodeResult.openingTag + "\n";
+            // result += nodeResult.openingTag + "\n";
         }
         if ("next" in nodeResult) {
             if (Array.isArray(nodeResult.next)) {
@@ -208,7 +314,7 @@ function reactToSvelte(node) {
             }
         }
         if ("closingTag" in nodeResult) {
-            result += nodeResult.closingTag + "\n";
+            // result += nodeResult.closingTag + "\n";
         }
     }
 }
@@ -217,6 +323,6 @@ const reactParsed = babelParser.parse(reactScript, {
     plugins: ["jsx", "typescript"],
 });
 FileManager.writeToFile(path.join(__dirname, "..", "output", "reactParsed.json"), JSON.stringify(reactParsed, null, 2));
-const outputPath = path.join(__dirname, "..", "output", "result.svelte");
+// const outputPath = path.join(__dirname, "..", "output", "result.svelte");
 reactToSvelte(reactParsed);
-FileManager.writeToFile(outputPath, result);
+// FileManager.writeToFile(outputPath, result);
